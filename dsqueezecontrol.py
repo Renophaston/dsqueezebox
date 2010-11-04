@@ -15,7 +15,7 @@ defaultvolstep     = 5
 __author__ = "renophaston"
 __date__  = "$Oct 23, 2010 10:26:55 AM$"
 version = "0.1.1"
-verbose = True
+verbose = False
 
 #### NOTES ####
 # A .pyw extension should prevent pop-up console windows in Windows.
