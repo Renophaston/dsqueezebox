@@ -15,10 +15,12 @@ defaultvolstep     = 5
 __author__ = "renophaston"
 __date__  = "$Oct 23, 2010 10:26:55 AM$"
 version = "0.1.1"
-verbose = False
 
 #### NOTES ####
 # A .pyw extension should prevent pop-up console windows in Windows.
+# TODO: remove sys, telnetlib imports after changeover to Player class
+# TODO: remove extraneous funcs after changeover
+# TODO: figure out a verbosity scheme
 #### END NOTES ####
 
 # for exit()
@@ -29,6 +31,7 @@ import telnetlib
 from optparse import OptionParser
 # for percent encoding
 #from urllib.parse import quote
+import DSqueezebox # for Player class
 
 def make_player(server, port, playername):
     '''Makes a proper player dictionary from arguments.'''
@@ -170,7 +173,6 @@ def changevol(player, amount):
     tn.close()
 
 def main():
-    global verbose
     # Deal with command line args
     parser = OptionParser(version="%prog " + version)
     parser.add_option("--server", dest="server",
@@ -214,31 +216,32 @@ def main():
     if args: # there shouldn't be any extra args
         parser.error("Unknown arguments: " + str(args))
 
-    # setting the verbosity level
-    verbose = options.verbose
-
-    # Make a player dict to pass around
-    player = make_player (options.server, options.port, options.playername)
+    # Create a Player object
+    player = DSqueezebox.Player()
+    if !player.attach_by_name(options.server, options.playername, options.port):
+		print ("Can't find player.")
+	else:
+		print ("Attached to player.")
 
     # Go through the commands and do each that is called
     if options.play:
-        play (player)
+        player.play()
     if options.pause:
-        pause (player)
+        player.pause()
     if options.unpause:
-        unpause (player)
+        player.unpause()
     if options.togglepause:
-        togglepause (player)
+        player.togglepause()
     if options.stop:
-        stop (player)
+        player.stop()
     if options.previous:
-        skip (player, -1)
+        player.skip(-1)
     if options.next:
-        skip (player, 1)
+        player.skip (1)
     if options.volup:
-        changevol (player, defaultvolstep)
+        player.changevol(defaultvolstep)
     if options.voldown:
-        changevol (player, -defaultvolstep)
+        player.changevol(-defaultvolstep)
 
 # This stuff only runs if this module is run by name (i.e. not imported)
 if __name__ == '__main__':
