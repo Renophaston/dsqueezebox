@@ -8,12 +8,18 @@ class Player:
 	# TODO: so far it just finds itself on the server
 	# TODO: need to deal with errors (currently it doesn't at all)
 	
+	def __init__(self):
+		self.playername = None
+		self.playerid = None
+		self.server = None
+	
 	# TODO: also make one with the ID/MAC address
 	def attach_to_name(self, server, playername, port=9090):
 		'''Assigns this Player object to a player on the network.
 		server: the server the player is attached to
 		playername: the simple name of the player, like "KrisTouch"
 		port (default: 9090): the TELNET port the server is listening on
+		Returns None if it can't find the player.
 		'''
 		self.server = server
 		self.playername = playername
@@ -43,7 +49,8 @@ class Player:
 		if self.playerindex == None: # we didn't find the name
 			print ('Player name "' + playername + '" not found on ' + server + '.')
 			tn.close()
-			sys.exit() # TODO: probably a better way to do this
+			return None;
+
 		# get the playerid for the playername from the server
 		tn.write(b'player id ' + self.playerindex + b' ?\n')
 		response = tn.read_until(b'\n')
@@ -53,3 +60,40 @@ class Player:
 		# The id is the last space-separated "word" in the response.
 		# And we have to get rid of the trailing newline.
 		self.playerid = response.split(b' ')[-1].rstrip()
+
+	def attach_to_id(self, server, playerid, port=9090):
+		'''Assigns this Player object to a player on the network.
+		server: the server the player is attached to
+		id: the id of the player; usually the MAC address
+		port (default: 9090): the TELNET port the server is listening on
+		Returns None if it can't find the player.
+		'''
+		self.server = server
+		self.port = port
+		
+		# the playerid is stored as a byte array
+		if type(playerid) == bytes:
+			self.playerid = playerid
+		elif type(playerid) == str:
+			self.playerid = playerid.encode('ascii')
+		
+		# we have to make sure the named player exists and get its ID.
+		tn = telnetlib.Telnet(self.server, self.port) # TODO: errors
+		
+		# we make sure the player exists and get its playername
+		tn.write(b'player name ' + self.playerid + b' ?\n')
+		response = tn.read_until(b'\n')
+		if len((response.split(b' '))) == 3: # we didn't find it
+			print ('Cannot find a player with id ' + self.playerid.decode() + '.')
+			return None
+		# otherwise, we have the name:
+		self.playername = response.split(b' ')[-1].rstrip().decode()
+		
+		tn.close()
+		
+	def is_attached(self):
+		'''Returns True if attached to a player, otherwise returns False'''
+		if self.playername and self.playerid:
+			return True
+		else:
+			return False
