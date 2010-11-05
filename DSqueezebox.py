@@ -9,7 +9,7 @@ class Player:
 	# TODO: need to deal with errors (currently it doesn't at all)
 	
 	# TODO: also make one with the ID/MAC address
-	def assign(self, server, playername, port=9090):
+	def attach_to_name(self, server, playername, port=9090):
 		'''Assigns this Player object to a player on the network.
 		server: the server the player is attached to
 		playername: the simple name of the player, like "KrisTouch"
@@ -20,7 +20,7 @@ class Player:
 		self.port = port
 		# init to None, in case we don't find the named player
 		self.playerindex = None
-		self.id = None # stored as byte array when we get one
+		self.playerid = None # stored as byte array when we get one
 		
 		# we have to make sure the named player exists and get its ID.
 		tn = telnetlib.Telnet(self.server, self.port) # TODO: errors
@@ -52,4 +52,4 @@ class Player:
 		
 		# The id is the last space-separated "word" in the response.
 		# And we have to get rid of the trailing newline.
-		self.id = response.split(b' ')[-1].rstrip()
+		self.playerid = response.split(b' ')[-1].rstrip()
