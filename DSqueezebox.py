@@ -20,13 +20,13 @@ class Player:
         '''
         self.server = server
         self.playername = playername
-        self.port = port
+        self.telnetport = port
         # init to None, in case we don't find the named player
         self.playerindex = None
         self.playerid = None # stored as byte array when we get one
         
         # we have to make sure the named player exists and get its ID.
-        tn = telnetlib.Telnet(self.server, self.port) # TODO: errors
+        tn = telnetlib.Telnet(self.server, self.telnetport) # TODO: errors
         
         # get num of players connected (starts at 1)
         tn.write(b'player count ?\n')
@@ -67,7 +67,7 @@ class Player:
         Returns None if it can't find the player.
         '''
         self.server = server
-        self.port = port
+        self.telnetport = port
         
         # the playerid is stored as a byte array
         if type(playerid) == bytes:
@@ -76,7 +76,7 @@ class Player:
             self.playerid = playerid.encode('ascii')
         
         # we have to make sure the named player exists and get its ID.
-        tn = telnetlib.Telnet(self.server, self.port) # TODO: errors
+        tn = telnetlib.Telnet(self.server, self.telnetport) # TODO: errors
         
         # we make sure the player exists and get its playername
         tn.write(b'player name ' + self.playerid + b' ?\n')
@@ -101,7 +101,7 @@ class Player:
         '''Starts a player playing if stopped or paused; otherwise does nothing.'''
         if self.is_attached():
             print ('Telling ' + self.playername + ' to play.')
-            tn = telnetlib.Telnet(self.server, self.port)
+            tn = telnetlib.Telnet(self.server, self.telnetport)
             tn.write(self.playerid + b' play\n')
             response = tn.read_until(b'\n')
             print ("Response from server: " + response.decode().rstrip())
@@ -114,7 +114,7 @@ class Player:
         '''Pauses a player if playing; otherwise does nothing.'''
         if self.is_attached():
             print ('Pausing ' + self.playername + '.')
-            tn = telnetlib.Telnet(self.server, self.port)
+            tn = telnetlib.Telnet(self.server, self.telnetport)
             tn.write(self.playerid + b' pause 1\n')
             response = tn.read_until(b'\n')
             print ("Response from server: " + response.decode().rstrip())
@@ -127,7 +127,7 @@ class Player:
         '''Unpauses a player if paused; otherwise does nothing.'''
         if self.is_attached():
             print ('Unpausing ' + self.playername + '.')
-            tn = telnetlib.Telnet(self.server, self.port)
+            tn = telnetlib.Telnet(self.server, self.telnetport)
             tn.write(self.playerid + b' pause 0\n')
             response = tn.read_until(b'\n')
             print ("Response from server: " + response.decode().rstrip())
@@ -140,7 +140,7 @@ class Player:
         '''Pauses a playing player; unpauses a paused one.'''
         if self.is_attached():
             print ('Toggling pause on ' + self.playername + '.')
-            tn = telnetlib.Telnet(self.server, self.port)
+            tn = telnetlib.Telnet(self.server, self.telnetport)
             
             # first test to make sure its either playing or paused
             tn.write(self.playerid + b' mode ?\n')
@@ -162,7 +162,7 @@ class Player:
         '''Stops a playing player; otherwise does nothing.'''
         if self.is_attached():
             print ('Stopping ' + self.playername + '.')
-            tn = telnetlib.Telnet(self.server, self.port)
+            tn = telnetlib.Telnet(self.server, self.telnetport)
             tn.write(self.playerid + b' stop\n')
             response = tn.read_until(b'\n')
             print ("Response from server: " + response.decode().rstrip())
@@ -177,7 +177,7 @@ class Player:
         if self.is_attached():
             print ('Skipping ' + str(amount) + ' tracks on ' + self.playername + '.')
             if amount != 0:
-                tn = telnetlib.Telnet(self.server, self.port)
+                tn = telnetlib.Telnet(self.server, self.telnetport)
                 tn.write(self.playerid + b' playlist index ' +
                         '{0:+}'.format(amount).encode('ascii') + b'\n')
                 response = tn.read_until(b'\n')
@@ -193,7 +193,7 @@ class Player:
         if self.is_attached():
             print ('Changing volume on ' + self.playername + ' by ' + str(amount) + '.')
             if amount != 0:
-                tn = telnetlib.Telnet(self.server, self.port)
+                tn = telnetlib.Telnet(self.server, self.telnetport)
                 tn.write(self.playerid + b' mixer volume ' +
                         '{0:+}'.format(amount).encode('ascii') + b'\n')
                 response = tn.read_until(b'\n')
