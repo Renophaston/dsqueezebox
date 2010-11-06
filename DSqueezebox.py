@@ -1,7 +1,7 @@
 # for telnet
 import telnetlib
 
-class Player:
+class DSPlayer:
     '''A class that represents a Squeezebox player.'''
     # TODO: need to deal with errors (currently it doesn't at all)
     
@@ -11,16 +11,17 @@ class Player:
         self.server = None
     
     # TODO: also make one with the ID/MAC address
-    def attach_by_name(self, server, playername, port=9090):
+    def attach_by_name(self, server, playername, telnetport=9090, httpport=9000):
         '''Assigns this Player object to a player on the network.
         server: the server the player is attached to
         playername: the simple name of the player, like "KrisTouch"
-        port (default: 9090): the TELNET port the server is listening on
+        telnetport (default: 9090): the TELNET port the server is listening on
         Returns None if it can't find the player.
         '''
         self.server = server
         self.playername = playername
-        self.telnetport = port
+        self.set_telnetport(telnetport)
+        self.set_httpport(httpport)
         # init to None, in case we don't find the named player
         self.playerindex = None
         self.playerid = None # stored as byte array when we get one
@@ -59,15 +60,16 @@ class Player:
         self.playerid = response.split(b' ')[-1].rstrip()
         return True
 
-    def attach_by_id(self, server, playerid, port=9090):
+    def attach_by_id(self, server, playerid, telnetport=9090, httpport=9000):
         '''Assigns this Player object to a player on the network.
         server: the server the player is attached to
         id: the id of the player; usually the MAC address
-        port (default: 9090): the TELNET port the server is listening on
+        telnetport (default: 9090): the TELNET port the server is listening on
         Returns None if it can't find the player.
         '''
         self.server = server
-        self.telnetport = port
+        self.set_telnetport(telnetport)
+        self.set_httpport(httpport)
         
         # the playerid is stored as a byte array
         if type(playerid) == bytes:
@@ -96,6 +98,18 @@ class Player:
             return True
         else:
             return False
+            
+    def set_telnetport(self, newport):
+        if type(newport) == int and 0 <= newport <= 65535:
+            self.telnetport = newport
+            return True
+        return False
+        
+    def set_httpport(self, newport):
+        if type(newport) == int and 0 <= newport <= 65535:
+            self.httpport = newport
+            return True
+        return False
             
     def play(self):
         '''Starts a player playing if stopped or paused; otherwise does nothing.'''

@@ -67,7 +67,7 @@ def main():
         parser.error("Unknown arguments: " + str(args))
 
     # Create a Player object
-    player = DSqueezebox.Player()
+    player = DSqueezebox.DSPlayer()
     if options.playerid and player.attach_by_id(options.server, options.playerid, options.port):
         print ("Found player by id.")
     elif (not options.playerid) and player.attach_by_name(options.server, options.playername, options.port):
