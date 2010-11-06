@@ -1,5 +1,3 @@
-# for exit()
-import sys
 # for telnet
 import telnetlib
 
