@@ -9,8 +9,8 @@ class DSPlayer:
         self.playername = None
         self.playerid = None
         self.server = None
-    
-    # TODO: also make one with the ID/MAC address
+        self.playerid = None # stored as byte array when we get one
+        
     def attach_by_name(self, server, playername, telnetport=9090, httpport=9000):
         '''Assigns this Player object to a player on the network.
         server: the server the player is attached to
@@ -24,7 +24,6 @@ class DSPlayer:
         self.set_httpport(httpport)
         # init to None, in case we don't find the named player
         self.playerindex = None
-        self.playerid = None # stored as byte array when we get one
         
         # we have to make sure the named player exists and get its ID.
         tn = telnetlib.Telnet(self.server, self.telnetport) # TODO: errors
@@ -76,6 +75,8 @@ class DSPlayer:
             self.playerid = playerid
         elif type(playerid) == str:
             self.playerid = playerid.encode('ascii')
+        else:
+            return False
         
         # we have to make sure the named player exists and get its ID.
         tn = telnetlib.Telnet(self.server, self.telnetport) # TODO: errors
