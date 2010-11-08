@@ -3,13 +3,12 @@
 '''
 #### CONFIG ####
 defaultserver      = 'sequoia'
-defaultport        = 9090
 defaultplayername  = 'KrisTouch'
 defaultvolstep     = 5
 #### END CONFIG ####
 
 __author__ = "renophaston"
-version = "0.2.0"
+version = "0.2.1"
 
 #### NOTES ####
 # A .pyw extension should prevent pop-up console windows in Windows.
@@ -18,7 +17,7 @@ version = "0.2.0"
 
 # for command line handling
 from optparse import OptionParser
-import DSqueezebox # for Player class
+import DSqueezebox # for Server class
 
 def main():
     # Deal with command line args
@@ -27,8 +26,7 @@ def main():
                       default=defaultserver,
                       help="specify the SERVER [default: %default]")
     parser.add_option("--port", dest="port",
-                      default=defaultport,
-                      help="specify the PORT [default: %default]")
+                      help="specify the http PORT")
     parser.add_option("--playername", dest="playername",
                       default=defaultplayername,
                       help="specify the name of the player "
@@ -66,34 +64,38 @@ def main():
     if args: # there shouldn't be any extra args
         parser.error("Unknown arguments: " + str(args))
 
-    # Create a Player object
-    player = DSqueezebox.DSPlayer()
-    if options.playerid and player.attach_by_id(options.server, options.playerid, options.port):
-        print ("Found player by id.")
-    elif (not options.playerid) and player.attach_by_name(options.server, options.playername, options.port):
-        print ("Found player by name.")
+    # Create a Server object
+    if (options.port):
+        server = DSqueezebox.Server(options.server, options.port)
     else:
-        print ("Cannot find player.")
-
+        server = DSqueezebox.Server(options.server)
+    
+    # Get playerid
+    if options.playerid:
+        playerid = options.playerid
+    else:
+        playerid = server.get_id(options.playername)
+        
     # Go through the commands and do each that is called
     if options.play:
-        player.play()
+        server.play(playerid)
     if options.pause:
-        player.pause()
+        server.pause(playerid)
     if options.unpause:
-        player.unpause()
+        server.unpause(playerid)
     if options.togglepause:
-        player.toggle_pause()
+        server.togglepause(playerid)
     if options.stop:
-        player.stop()
+        server.stop(playerid)
     if options.previous:
-        player.skip(-1)
+        server.skip(playerid, -1)
     if options.next:
-        player.skip (1)
+        server.skip (playerid, 1)
     if options.volup:
-        player.change_vol(defaultvolstep)
+        server.change_volume(playerid, defaultvolstep)
     if options.voldown:
-        player.change_vol(-defaultvolstep)
+        server.change_volume(playerid, -defaultvolstep)
+
 
 # This stuff only runs if this module is run by name (i.e. not imported)
 if __name__ == '__main__':

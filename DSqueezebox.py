@@ -1,219 +1,98 @@
-# for telnet
-import telnetlib
+version = "0.2.1"
 
-class DSPlayer:
-    '''A class that represents a Squeezebox player.'''
-    # TODO: need to deal with errors (currently it doesn't at all)
+#### IMPORTS ####
+import re
+
+# for json
+import json
+import urllib.request
+
+class Server:
+    '''A class that interfaces with a Squeezebox server.'''
+    # TODO: deal with errors (both exceptions and server responses)
     
-    def __init__(self):
-        self.playername = None
-        self.playerid = None
-        self.server = None
-        self.playerid = None # stored as byte array when we get one
-        
-    def attach_by_name(self, server, playername, telnetport=9090, httpport=9000):
-        '''Assigns this Player object to a player on the network.
-        server: the server the player is attached to
-        playername: the simple name of the player, like "KrisTouch"
-        telnetport (default: 9090): the TELNET port the server is listening on
-        Returns None if it can't find the player.
+    def __init__(self, servername='localhost', httpport=9000):
+        self.servername = servername
+        self.httpport = httpport
+        self.set_jsonurl()
+
+    ## PUBLIC methods
+    
+    def query_server(self, *args):
+        '''Sends a JSON whatever to the server and returns the response as a JSONy dictionary.
+        If the first arg is the playerid, it'll treat it as such, otherwise
+        it'll just talk to the server.
         '''
-        self.server = server
-        self.playername = playername
-        self.set_telnetport(telnetport)
-        self.set_httpport(httpport)
-        # init to None, in case we don't find the named player
-        self.playerindex = None
-        
-        # we have to make sure the named player exists and get its ID.
-        tn = telnetlib.Telnet(self.server, self.telnetport) # TODO: errors
-        
-        # get num of players connected (starts at 1)
-        tn.write(b'player count ?\n')
-        response = tn.read_until(b'\n')
-        # this line will throw a ValueError if not an int
-        playercount = int (response.split(b' ')[-1].rstrip().decode())
-        
-        for i in range(playercount): # iterate through players
-            # see what the name for each player index is
-            # the text we're sending should look like: "player name # ?"
-            tn.write(b'player name ' + str(i).encode('ascii') + b' ?\n')
-            
-            response = tn.read_until(b'\n')
-            if response.split(b' ')[-1].rstrip().decode() == self.playername:
-                self.playerindex = str(i).encode('ascii');
-        
-        if self.playerindex == None: # we didn't find the name
-            print ('Player name "' + playername + '" not found on ' + server + '.')
-            tn.close()
-            return None;
-
-        # get the playerid for the playername from the server
-        tn.write(b'player id ' + self.playerindex + b' ?\n')
-        response = tn.read_until(b'\n')
-        
-        tn.close()
-        
-        # The id is the last space-separated "word" in the response.
-        # And we have to get rid of the trailing newline.
-        self.playerid = response.split(b' ')[-1].rstrip()
-        return True
-
-    def attach_by_id(self, server, playerid, telnetport=9090, httpport=9000):
-        '''Assigns this Player object to a player on the network.
-        server: the server the player is attached to
-        id: the id of the player; usually the MAC address
-        telnetport (default: 9090): the TELNET port the server is listening on
-        Returns None if it can't find the player.
-        '''
-        self.server = server
-        self.set_telnetport(telnetport)
-        self.set_httpport(httpport)
-        
-        # the playerid is stored as a byte array
-        if type(playerid) == bytes:
-            self.playerid = playerid
-        elif type(playerid) == str:
-            self.playerid = playerid.encode('ascii')
+        if re.search('^\w\w:\w\w:\w\w:\w\w:\w\w:\w\w$', args[0]):
+            # we're affecting a player
+            querydata = json.dumps({'id':1, 'method':'slim.request', 'params':[args[0], list(args)[1:]]})
         else:
-            return False
+            # we're just talking to the server
+            querydata = json.dumps({'id':1, 'method':'slim.request', 'params':['-', list(args)]})
         
-        # we have to make sure the named player exists and get its ID.
-        tn = telnetlib.Telnet(self.server, self.telnetport) # TODO: errors
+        #print (querydata)
+        req = urllib.request.Request(self.jsonurl, querydata)
+        response = urllib.request.urlopen(req)
         
-        # we make sure the player exists and get its playername
-        tn.write(b'player name ' + self.playerid + b' ?\n')
-        response = tn.read_until(b'\n')
-        if len((response.split(b' '))) == 3: # we didn't find it
-            print ('Cannot find a player with id ' + self.playerid.decode() + '.')
-            return None
-        # otherwise, we have the name:
-        self.playername = response.split(b' ')[-1].rstrip().decode()
+        return json.loads(response.read().decode())
         
-        tn.close()
-        return True
+    def set_server(self, servername, port=-1):
+        '''Set server to servername; if port is omitted, it isn't changed.'''
+        self.servername = servername
+        if type(port) == int and 0 <= port <= 65535:
+            self.httpport = port
+        self.set_jsonurl()
         
-    def is_attached(self):
-        '''Returns True if attached to a player, otherwise returns False'''
-        if self.playername and self.playerid:
-            return True
-        else:
-            return False
-            
-    def set_telnetport(self, newport):
-        if type(newport) == int and 0 <= newport <= 65535:
-            self.telnetport = newport
-            return True
+    def get_id(self, playername):
+        '''Takes a name ("JohnsTouch") and returns the playerid or False if it can't find it.'''
+        response = self.query_server('players', 0, 99)
+        for player in response['result']['players_loop']:
+            if player['name'] == playername:
+                return player['playerid']
         return False
-        
-    def set_httpport(self, newport):
-        if type(newport) == int and 0 <= newport <= 65535:
-            self.httpport = newport
-            return True
+    
+    def get_name(self, playerid):
+        '''Takes a playerid and returns the name or False.'''
+        response = self.query_server('players', 0, 99)
+        for player in response['result']['players_loop']:
+            if player['playerid'] == playerid:
+                return player['name']
         return False
-            
-    def play(self):
-        '''Starts a player playing if stopped or paused; otherwise does nothing.'''
-        if self.is_attached():
-            print ('Telling ' + self.playername + ' to play.')
-            tn = telnetlib.Telnet(self.server, self.telnetport)
-            tn.write(self.playerid + b' play\n')
-            response = tn.read_until(b'\n')
-            print ("Response from server: " + response.decode().rstrip())
-            tn.close()
-            return True
-        else:
-            return False
     
-    def pause(self):
-        '''Pauses a player if playing; otherwise does nothing.'''
-        if self.is_attached():
-            print ('Pausing ' + self.playername + '.')
-            tn = telnetlib.Telnet(self.server, self.telnetport)
-            tn.write(self.playerid + b' pause 1\n')
-            response = tn.read_until(b'\n')
-            print ("Response from server: " + response.decode().rstrip())
-            tn.close()
-            return True
-        else:
-            return False
-    
-    def unpause(self):
-        '''Unpauses a player if paused; otherwise does nothing.'''
-        if self.is_attached():
-            print ('Unpausing ' + self.playername + '.')
-            tn = telnetlib.Telnet(self.server, self.telnetport)
-            tn.write(self.playerid + b' pause 0\n')
-            response = tn.read_until(b'\n')
-            print ("Response from server: " + response.decode().rstrip())
-            tn.close()
-            return True
-        else:
-            return False
-            
-    def toggle_pause(self):
-        '''Pauses a playing player; unpauses a paused one.'''
-        if self.is_attached():
-            print ('Toggling pause on ' + self.playername + '.')
-            tn = telnetlib.Telnet(self.server, self.telnetport)
-            
-            # first test to make sure its either playing or paused
-            tn.write(self.playerid + b' mode ?\n')
-            response = tn.read_until(b'\n')
-            # mode is last "word" of response; remove newline
-            mode = response.split(b' ')[-1].rstrip()
-            if mode in (b'play', b'pause'): # it's playing or paused
-                tn.write(self.playerid + b' pause\n') # toggle pause
-                response = tn.read_until(b'\n')
-                print ("Response from server: " + response.decode().rstrip())
-            else:
-                print ("Not paused or playing, so I'm not toggling pause.")
-            tn.close()
-            return True
-        else:
-            return False
+    def get_player_mode(self, playerid):
+        '''Returns player mode, e.g. 'pause', 'play', etc.'''
+        response = self.query_server(playerid, 'status')
+        return response['result']['mode']
 
-    def stop(self):
-        '''Stops a playing player; otherwise does nothing.'''
-        if self.is_attached():
-            print ('Stopping ' + self.playername + '.')
-            tn = telnetlib.Telnet(self.server, self.telnetport)
-            tn.write(self.playerid + b' stop\n')
-            response = tn.read_until(b'\n')
-            print ("Response from server: " + response.decode().rstrip())
-            tn.close()
-            return True
-        else:
-            return False
+    def play(self, playerid):
+        self.query_server(playerid, 'play')
+        
+    def pause(self, playerid):
+        self.query_server(playerid, 'pause', 1)
+        
+    def unpause(self, playerid):
+        self.query_server(playerid, 'pause', 0)
     
-    def skip(self, amount):
-        '''Skips in a playlist by amount.
-        Positive is forward, negative is backward; zero does nothing.'''
-        if self.is_attached():
-            print ('Skipping ' + str(amount) + ' tracks on ' + self.playername + '.')
-            if amount != 0:
-                tn = telnetlib.Telnet(self.server, self.telnetport)
-                tn.write(self.playerid + b' playlist index ' +
-                        '{0:+}'.format(amount).encode('ascii') + b'\n')
-                response = tn.read_until(b'\n')
-                print ("Response from server: " + response.decode().rstrip())
-                tn.close()
-            return True
-        else:
-            return False
-            
-    def change_vol(self, amount):
-        '''Changes a players volume by amount.
-        Positive is louder, negative is quieter.'''
-        if self.is_attached():
-            print ('Changing volume on ' + self.playername + ' by ' + str(amount) + '.')
-            if amount != 0:
-                tn = telnetlib.Telnet(self.server, self.telnetport)
-                tn.write(self.playerid + b' mixer volume ' +
-                        '{0:+}'.format(amount).encode('ascii') + b'\n')
-                response = tn.read_until(b'\n')
-                print ("Response from server: " + response.decode().rstrip())
-                tn.close()
-            return True
-        else:
-            return False
+    def stop(self, playerid):
+        self.query_server(playerid, 'stop')
+    
+    def togglepause(self, playerid):
+        '''If player is paused or playing, toggle pause state.'''
+        playermode = self.get_player_mode(playerid)
+        if playermode == 'pause' or playermode == 'play':
+            self.query_server(playerid, 'pause')
+    
+    def skip(self, playerid, amount):
+        '''Skips amount of songs. Negative skips backward.'''
+        if amount != 0:
+            self.query_server(playerid, 'playlist', 'index', '{0:+}'.format(amount))
+    
+    def change_volume(self, playerid, amount):
+        '''Changes volume by amount (i.e. not _to_ amount).'''
+        if amount != 0:
+            self.query_server(playerid, 'mixer', 'volume', '{0:+}'.format(amount))
+        
+    ## PRIVATE methods
+        
+    def set_jsonurl(self):
+        self.jsonurl = 'http://' + self.servername + ':' + str(self.httpport) + '/jsonrpc.js'
