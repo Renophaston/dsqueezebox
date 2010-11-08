@@ -61,8 +61,8 @@ class Server:
     
     def get_player_mode(self, playerid):
         '''Returns player mode, e.g. 'pause', 'play', etc.'''
-        response = self.query_server(playerid, 'status')
-        return response['result']['mode']
+        response = self.query_server(playerid, 'mode', '?')
+        return response['result']['_mode']
 
     def play(self, playerid):
         self.query_server(playerid, 'play')
