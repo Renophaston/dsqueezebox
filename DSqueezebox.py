@@ -31,7 +31,7 @@ class Server:
             querydata = json.dumps({'id':1, 'method':'slim.request', 'params':['-', list(args)]})
         
         #print (querydata)
-        req = urllib.request.Request(self.jsonurl, querydata)
+        req = urllib.request.Request(self.jsonurl, querydata.encode())
         response = urllib.request.urlopen(req)
         
         return json.loads(response.read().decode())
