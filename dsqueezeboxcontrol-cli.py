@@ -1,23 +1,25 @@
 #!/usr/bin/env python
-'''Control a Squeezebox from the command line.
-'''
-#### CONFIG ####
-defaultserver      = 'sequoia'
-defaultplayername  = 'KrisTouch'
-defaultvolstep     = 5
-#### END CONFIG ####
-
-__author__ = "renophaston"
-version = "0.2.1"
-
-#### NOTES ####
-# A .pyw extension should prevent pop-up console windows in Windows.
-# TODO: figure out a verbosity scheme
-#### END NOTES ####
+"""Control a Squeezebox from the command line.
+"""
 
 # for command line handling
 from optparse import OptionParser
-import DSqueezebox # for Server class
+import DSqueezebox  # for Server class
+
+# CONFIG
+defaultserver = 'sequoia'
+defaultplayername = 'KrisTouch'
+defaultvolstep = 5
+# END CONFIG
+
+__author__ = "renophaston"
+version = "0.2.2"
+
+# NOTES
+# A .pyw extension should prevent pop-up console windows in Windows.
+# todo: figure out a verbosity scheme
+# END NOTES
+
 
 def main():
     # Deal with command line args
@@ -61,11 +63,11 @@ def main():
 
     (options, args) = parser.parse_args()
 
-    if args: # there shouldn't be any extra args
+    if args:  # there shouldn't be any extra args
         parser.error("Unknown arguments: " + str(args))
 
     # Create a Server object
-    if (options.port):
+    if options.port:
         server = DSqueezebox.Server(options.server, options.port)
     else:
         server = DSqueezebox.Server(options.server)
@@ -90,7 +92,7 @@ def main():
     if options.previous:
         server.skip(playerid, -1)
     if options.next:
-        server.skip (playerid, 1)
+        server.skip(playerid, 1)
     if options.volup:
         server.change_volume(playerid, defaultvolstep)
     if options.voldown:
